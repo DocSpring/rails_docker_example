@@ -1,0 +1,3 @@
+[submodule "react-webpack-rails-tutorial"]
+	path = react-webpack-rails-tutorial
+	url = https://github.com/FormAPI/react-webpack-rails-tutorial.git

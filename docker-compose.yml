@@ -1,0 +1,33 @@
+version: '2.2'
+services:
+  web:
+    image: demoapp/app:latest
+    restart: always
+    cpu_shares: 512
+    mem_limit: 1024MB
+    scale: 1
+    environment:
+      - DATABASE_URL=postgres://postgres:password@postgres:5432/react_webpack_production
+      - REDIS_URL=redis://redis:6379
+      - SECRET_KEY_BASE=231bf79489c63f8c8facd7bf27db1c2582a42a7f4302fccdb74ef35bc5dc91fb4e19dbf167f3003bdb4073818dfab4a9916890d193d535a7be458dbef1609800
+    command: ["foreman", "start"]
+    ports:
+      - 3000:80
+    links:
+      - postgres
+      - redis
+
+  postgres:
+    image: convox/postgres
+    restart: always
+    ports:
+      - 5432
+    volumes:
+      - /var/lib/postgresql
+  redis:
+    image: convox/redis
+    restart: always
+    ports:
+      - 6379
+    volumes:
+      - /var/lib/redis

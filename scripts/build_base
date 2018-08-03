@@ -1,0 +1,7 @@
+#!/bin/bash
+set -e
+mkdir -p /tmp/docker-context
+docker build -t "demoapp/base" -f docker/Dockerfile.base .
+
+# Make the next app build use this base image
+docker image rm demoapp/app:base-build 2> /dev/null

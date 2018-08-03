@@ -1,0 +1,38 @@
+FROM demoapp/ruby-node:latest
+
+# Set up a minimal .bashrc, .gemrc, install packages
+RUN echo "export LS_OPTIONS='--color=auto'" >> "$HOME/.bashrc" \
+    && echo "alias ls='ls $LS_OPTIONS'" >> "$HOME/.bashrc" \
+    && echo "alias ll='ls $LS_OPTIONS -l'" >> "$HOME/.bashrc" \
+    && echo "alias l='ls $LS_OPTIONS -lA'" >> "$HOME/.bashrc" \
+    && echo "gem: --no-rdoc --no-ri" > "$HOME/.gemrc"
+
+RUN apt-get update \
+    && apt-get install -y \
+        build-essential git curl wget \
+        rsync \
+        postgresql-client libpq-dev \
+        nginx \
+        --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
+RUN update-rc.d -f nginx disable \
+    && rm -f /etc/nginx/sites-enabled/default /etc/nginx/sites-available/default
+
+WORKDIR /app
+
+# These folders need to exist when this is used
+# as the base image for the initial build
+RUN mkdir -p /app/tmp/cache/assets
+RUN mkdir -p /app/public/assets
+
+ENV BUNDLE_APP_CONFIG /app/.bundle
+ENV BUNDLE_BIN /app/vendor/bundle/bin
+ENV BUNDLE_PATH /app/vendor/bundle
+ENV GEM_HOME /app/vendor/bundle
+ENV PATH "/app/vendor/bundle/bin:/app/node_modules/.bin:${PATH}"
+
+ENV RAILS_SERVE_STATIC_FILES true
+ENV RAILS_LOG_TO_STDOUT true
+ENV RAILS_ENV production
+ENV NODE_ENV production
+ENV PORT 4001
