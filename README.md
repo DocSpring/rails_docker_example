@@ -1,5 +1,9 @@
 # Fast Docker builds for Rails and Webpack
 
+> These scripts have been tested with Docker version `18.06.0-ce`, build `0ffa825`.
+
+Features:
+
 * Use Docker's layer cache for gems, npm packages, and assets, if the relevant files have not been changed
 * If there are any changes to `Gemfile` or `package.json`, re-use the gems and packages from the previous build
 * If there are any changes to assets, re-use the assets cache from the previous build

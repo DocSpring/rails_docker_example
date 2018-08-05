@@ -1,4 +1,5 @@
 #!/bin/bash
+# Tested with Docker version 18.06.0-ce, build 0ffa825
 set -e
 
 # Reset the base image after this many rsync diff layers
