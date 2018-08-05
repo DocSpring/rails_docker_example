@@ -19,8 +19,9 @@ if [ -z "$(docker images -q $APP_NAME/base 2> /dev/null)" ]; then
     docker build -t "$APP_NAME/base" -f docker/Dockerfile.base .
 fi
 
-BASE_IMAGE_ID="$(docker images -q $APP_NAME/app:base-build 2> /dev/null)"
-if [ -z "$BASE_IMAGE_ID" ]; then
+LATEST_BUILD_ID="$(docker images -q $APP_NAME/app:latest 2> /dev/null)"
+BASE_BUILD_ID="$(docker images -q $APP_NAME/app:base-build 2> /dev/null)"
+if [ -z "$BASE_BUILD_ID" ] || [ -z "$LATEST_BUILD_ID" ]; then
     echo "No previous builds, starting from $APP_NAME/base..."
     # If there is no previous build, use the base image
     docker tag "$APP_NAME/base" "$APP_NAME/app:base-build"
@@ -54,7 +55,7 @@ docker tag "$APP_NAME/app:current-build" "$APP_NAME/app:latest-build"
 
 if [ -z "$INITIAL_BUILD" ]; then
     IMAGE_LAYERS="$(docker history --human=false $APP_NAME/app:latest \
-        --format="{{.Size}} {{.CreatedBy}} {{.Comment}}" 2>/dev/null)"
+        --format="{{.Size}} {{.CreatedBy}} {{.Comment}}" 2>/dev/null || true)"
 
     DIFF_LAYERS_COUNT="$(echo "$IMAGE_LAYERS" | grep -c "rsync --recursive" || true)"
     DIFF_LAYERS_SIZE="$(
@@ -81,7 +82,7 @@ if [ "$INITIAL_BUILD" ] ||
     [ "$DIFF_PERCENTAGE" -gt "$MAX_DIFF_SIZE_PERCENTAGE" ]
 then
     if [ "$INITIAL_BUILD" ]; then
-        echo "Tagging initial base image for builds with gems, npm packages, assets cache..."
+        echo "Tagging $APP_NAME/app:base-build as the base image for next builds..."
         docker tag "$APP_NAME/app:current-build" "$APP_NAME/app:base-build"
     elif [ "$DIFF_LAYERS_COUNT" -ge "$MAX_DIFF_LAYERS_COUNT" ]; then
         echo "Reached the maximum number of rsync diff layers ($MAX_DIFF_LAYERS_COUNT)"
@@ -119,6 +120,9 @@ else
 
     # Commit the updated files as a new layer
     docker commit "$APP_NAME-diff-layer" "$APP_NAME/app:latest"
+
+    DIFF_LAYER_SIZE="$(docker history "$APP_NAME/app:latest" --format="{{.Size}}" | head -n1)"
+    echo "====> New diff layer size: $DIFF_LAYER_SIZE"
 fi
 
 echo "Finished building $APP_NAME/app:latest"
