@@ -4,15 +4,16 @@
 
 Features:
 
-* Use Docker's layer cache for gems, npm packages, and assets, if the relevant files have not been changed
-* If there are any changes to `Gemfile` or `package.json`, re-use the gems and packages from the previous build
-* If there are any changes to assets, re-use the assets cache from the previous build
-* Only include the necessary files in the final image
-  * Production doesn't need any files in `app/assets`, npm packages, or front-end source code
-* After building a new image, create a "diff layer" between the new image and the previous image,
-  so that it only includes the changed files
-* Create a sequence of diff layers, and enforce a maximum number of layers so that the image doesn't grow too large
-* Use Nginx to serve static assets and for better concurrency
+* Use Docker's cached layers for gems, npm packages, and assets, if the relevant files have not been changed (`Gemfile`, `Gemfile.lock`, `package.json`, etc.)
+* If there are any changes to `Gemfile` or `package.json`, re-use the gems and packages from the first build.
+  * I experimented with copying in the gems and packages from the *latest* build, but the `COPY` command took much longer than installing a few gems or packages. The
+  new layer will also be cached if you don't make any further changes to the relevant files.
+* If there are any changes to assets, re-use the assets cache from the previous build.
+* Only include necessary files in the final image.
+  * A production Rails app doesn't use any files in `app/assets`, `node_modules`, or front-end source code. A lot of gems also have some junk files that I'm removing (e.g. `spec`, `test`, `README.md`)
+* After building a new image, create a small "diff layer" between the new image and the previous image. This layer should only include the changed files.
+* Create a sequence of diff layers, and reset the base image if there are too many layers (> 30), or if the diff layers add up to more than 80% of the base layer's size.
+* Use Nginx for better concurrency, and to serve static assets
 
 
 ## Build Docker images and start the Rails app
@@ -58,6 +59,41 @@ cd ..
 Then run `./scripts/build_app`.
 
 Notice that while the `bundle install` and `yarn install` are not fully cached, they are still using all of the gems and npm packages from the previous build.
+
+
+# Image Tags
+
+The build script uses the following tags to implement caching and diff layers:
+
+###  `demoapp/ruby-node:latest`
+
+Contains specific versions of Ruby, Node.js, and Yarn.
+I started by using some `ruby-node` images from Docker Hub,
+but I've found that it's much better to have full control over these versions.
+
+### `demoapp/base:latest`
+
+Based on `demoapp/ruby-node`. Contains Linux packages (e.g. `build-essential`, `postgresql-client`, `nginx`, `rsync`), and also sets up some directories and environment variables.
+
+### `demoapp/app:base-build`
+
+ The base image for the app build. The initial build uses `demoapp/base` as the base image, and then tags the resulting image with `demoapp/app:base-build`. All the subsequent builds use this initial build as the base image. We only set the `base-build` once, because if it keeps changing then Docker can't do any caching.
+
+### `demoapp/app:latest-build`
+
+ The most recent build. We copy in the assets and Sprockets cache from this build before running `rake assets:precompile`. This way, we can take advantage of Docker's layer caching while also using the latest assets cache.
+
+### `demoapp/app:current-build`
+
+ The build that is currently in progress. We need this tag because we run `docker build` twice, targeting two different stages in `Dockerfile.app`. After compiling assets, we save the whole build image as the `latest-build` tag. This includes all of the cache files that we want to re-use in the next build, but we don't need any of these files in production. So the second build re-uses all of these layers, but then runs some commands to clean up the image and remove unnecessary files, then finally squashes everything into a single layer.
+
+### `demoapp/app:current`
+
+This the in-progress production build that contains the final squashed layer. We don't override the `demoapp/app:latest` tag immediately, because we want to produce a small diff layer between `demoapp/app:latest` and `demoapp/app:current`
+
+### `demoapp/app:latest`
+
+After running `./scripts/build_app`, this is the final production image.
 
 
 ## More info about the react-webpack-rails-tutorial app

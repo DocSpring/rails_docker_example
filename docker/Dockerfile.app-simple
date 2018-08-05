@@ -12,15 +12,6 @@ RUN bundle config --global frozen 1 \
 
 FROM gems as assets
 
-ADD package.json /app/package.json
-ADD yarn.lock /app/yarn.lock
-ADD client/package.json /app/client/package.json
-ADD client/yarn.lock /app/client/yarn.lock
-# These COPY commands are much slower than installing a couple of new packages.
-# COPY --from=demoapp/app:latest-build /app/node_modules /app/node_modules
-# COPY --from=demoapp/app:latest-build /app/client/node_modules /app/client/node_modules
-RUN yarn install
-
 # Only add files that affect the assets:precompile task
 ADD Rakefile                                /app/Rakefile
 ADD config/application.rb                   /app/config/application.rb
@@ -36,7 +27,6 @@ ADD lib/tasks/assets.rake                   /app/lib/tasks/assets.rake
 ADD app/assets                              /app/app/assets
 ADD lib/assets                              /app/lib/assets
 ADD vendor/assets                           /app/vendor/assets
-ADD client                                  /app/client
 
 # Copy assets and cache from the latest build
 COPY --from=demoapp/app:latest-build /app/tmp/cache/assets /app/tmp/cache/assets
@@ -50,24 +40,10 @@ FROM gems
 
 ADD . /app
 
-# Remove unneeded files (including junk from ruby gems)
-RUN rm -rf app/assets client node_modules log tmp \
-    && mkdir log tmp \
-    && find vendor/bundle/ruby/*/extensions \
-        -type f -name "mkmf.log" -o -name "gem_make.out" | xargs rm -f \
-    && find vendor/bundle/ruby/*/gems -maxdepth 2 \
-        \( -type d -name "spec" -o -name "test" -o -name "docs" \) -o \
-        \( -name "*LICENSE*" -o -name "README*" -o -name "CHANGELOG*" \
-            -o -name "*.md" -o -name "*.txt" -o -name ".gitignore" -o -name ".travis.yml" \
-            -o -name ".rubocop.yml" -o -name ".yardopts" -o -name ".rspec" \
-            -o -name "appveyor.yml" -o -name "COPYING" -o -name "SECURITY" \
-            -o -name "HISTORY" -o -name "CODE_OF_CONDUCT" -o -name "CONTRIBUTING" \
-        \) | xargs rm -rf
+# Remove unneeded files
+RUN rm -rf app/assets log tmp && mkdir log tmp
 
 COPY --from=assets /app/public/assets /app/public/assets
-COPY --from=assets /app/public/webpack /app/public/webpack
-COPY --from=assets /app/client/app/libs/i18n /app/client/app/libs/i18n
-
 RUN ln -fs /app/config/nginx.production.conf /etc/nginx/sites-enabled/rails-app
 
 EXPOSE 80
