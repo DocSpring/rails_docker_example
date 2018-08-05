@@ -2,25 +2,29 @@
 # Tested with Docker version 18.06.0-ce, build 0ffa825
 set -e
 
+APP_NAME="demoapp"
+DOCKERFILE="docker/Dockerfile.app"
+DOCKER_CONTEXT="react-webpack-rails-tutorial"
+
 # Reset the base image after this many rsync diff layers
 MAX_DIFF_LAYERS_COUNT=30
 # Reset the base image when rsync diff layers are more than x% of the base layer
 MAX_DIFF_SIZE_PERCENTAGE=80
 
 # Build base images first
-if [ -z "$(docker images -q demoapp/ruby-node 2> /dev/null)" ]; then
-    docker build -t "demoapp/ruby-node" -f docker/Dockerfile.ruby-node .
+if [ -z "$(docker images -q $APP_NAME/ruby-node 2> /dev/null)" ]; then
+    docker build -t "$APP_NAME/ruby-node" -f docker/Dockerfile.ruby-node .
 fi
-if [ -z "$(docker images -q demoapp/base 2> /dev/null)" ]; then
-    docker build -t "demoapp/base" -f docker/Dockerfile.base .
+if [ -z "$(docker images -q $APP_NAME/base 2> /dev/null)" ]; then
+    docker build -t "$APP_NAME/base" -f docker/Dockerfile.base .
 fi
 
-BASE_IMAGE_ID="$(docker images -q demoapp/app:base-build 2> /dev/null)"
+BASE_IMAGE_ID="$(docker images -q $APP_NAME/app:base-build 2> /dev/null)"
 if [ -z "$BASE_IMAGE_ID" ]; then
-    echo "No previous builds, starting from demoapp/base..."
+    echo "No previous builds, starting from $APP_NAME/base..."
     # If there is no previous build, use the base image
-    docker tag demoapp/base demoapp/app:base-build
-    docker tag demoapp/base demoapp/app:latest-build
+    docker tag "$APP_NAME/base" "$APP_NAME/app:base-build"
+    docker tag "$APP_NAME/base" "$APP_NAME/app:latest-build"
     INITIAL_BUILD=true
 fi
 
@@ -31,25 +35,25 @@ db4073818dfab4a9916890d193d535a7be458dbef1609800
 
 docker build \
     --target assets \
-    -t demoapp/app:current-build \
-    -f docker/Dockerfile.app \
+    -t "$APP_NAME/app:current-build" \
+    -f "$DOCKERFILE" \
     --build-arg "SECRET_KEY_BASE=${SECRET_KEY_BASE}" \
-    react-webpack-rails-tutorial
+    "$DOCKER_CONTEXT"
 
 # Reset to the gems stage, copy in /app, remove unneeded files, squash layers
 docker build \
-    -t demoapp/app:current \
-    -f docker/Dockerfile.app \
+    -t "$APP_NAME/app:current" \
+    -f "$DOCKERFILE" \
     --build-arg "SECRET_KEY_BASE=${SECRET_KEY_BASE}" \
     --squash \
-    react-webpack-rails-tutorial
+    "$DOCKER_CONTEXT"
 
 # Copy assets + cache from this build during the next build
 # (Must tag after the squashed build, otherwise it invalidates the cache)
-docker tag demoapp/app:current-build demoapp/app:latest-build
+docker tag "$APP_NAME/app:current-build" "$APP_NAME/app:latest-build"
 
 if [ -z "$INITIAL_BUILD" ]; then
-    IMAGE_LAYERS="$(docker history --human=false demoapp/app:latest \
+    IMAGE_LAYERS="$(docker history --human=false $APP_NAME/app:latest \
         --format="{{.Size}} {{.CreatedBy}} {{.Comment}}" 2>/dev/null)"
 
     DIFF_LAYERS_COUNT="$(echo "$IMAGE_LAYERS" | grep -c "rsync --recursive" || true)"
@@ -78,7 +82,7 @@ if [ "$INITIAL_BUILD" ] ||
 then
     if [ "$INITIAL_BUILD" ]; then
         echo "Tagging initial base image for builds with gems, npm packages, assets cache..."
-        docker tag demoapp/app:current-build demoapp/app:base-build
+        docker tag "$APP_NAME/app:current-build" "$APP_NAME/app:base-build"
     elif [ "$DIFF_LAYERS_COUNT" -ge "$MAX_DIFF_LAYERS_COUNT" ]; then
         echo "Reached the maximum number of rsync diff layers ($MAX_DIFF_LAYERS_COUNT)"
         echo "Resetting base image..."
@@ -87,34 +91,34 @@ then
         echo "Resetting base image..."
     fi
 
-    docker tag demoapp/app:current demoapp/app:latest
+    docker tag "$APP_NAME/app:current" "$APP_NAME/app:latest"
 else
     echo "Creating a diff layer between :latest and :current..."
     echo "=> To reset the base image and remove all diff layers, run:"
-    echo "      docker tag demoapp/app:current demoapp/app:latest"
+    echo "      docker tag $APP_NAME/app:current $APP_NAME/app:latest"
 
     # Remove existing volume (if exists)
-    docker container rm demoapp-current-volume > /dev/null 2>&1 || true
+    docker container rm "$APP_NAME-current-volume" > /dev/null 2>&1 || true
     # Create a new container from :current with /app as a volume
-    docker run --name=demoapp-current-volume \
-        --volume /app demoapp/app:current true
+    docker run --name="$APP_NAME-current-volume" \
+        --volume /app "$APP_NAME/app:current" true
 
     # Find the host directory for the /app volume
-    BUILD_VOLUME_DIR="$(docker inspect demoapp-current-volume \
+    BUILD_VOLUME_DIR="$(docker inspect "$APP_NAME-current-volume" \
         -f '{{ (index .Mounts 0).Source }}')"
 
-    # Use rsync to add/remove changed files in the demoapp-diff-layer container
+    # Use rsync to add/remove changed files in the diff layer container
     # Adds another rsync layer to the latest image
-    docker container rm demoapp-diff-layer > /dev/null 2>&1 || true
-    docker run --name=demoapp-diff-layer -it \
+    docker container rm "$APP_NAME-diff-layer" > /dev/null 2>&1 || true
+    docker run --name="$APP_NAME-diff-layer" -it \
         --volume "$BUILD_VOLUME_DIR:/app-current" \
-        demoapp/app:latest \
+        "$APP_NAME/app:latest" \
         rsync --recursive --links --progress --checksum --delete --itemize-changes \
             --exclude tmp --exclude log \
             /app-current/ /app/
 
     # Commit the updated files as a new layer
-    docker commit demoapp-diff-layer demoapp/app:latest
+    docker commit "$APP_NAME-diff-layer" "$APP_NAME/app:latest"
 fi
 
-echo "Finished building demoapp/app:latest"
+echo "Finished building $APP_NAME/app:latest"
