@@ -115,7 +115,7 @@ else
         --volume "$BUILD_VOLUME_DIR:/app-current" \
         "$APP_NAME/app:latest" \
         rsync --recursive --links --progress --checksum --delete --itemize-changes \
-            --exclude tmp --exclude log \
+            --exclude log \
             /app-current/ /app/
 
     # Commit the updated files as a new layer

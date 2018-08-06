@@ -76,6 +76,10 @@ RUN rm -rf app/assets client node_modules log tmp \
 COPY --from=webpack /app/client/app/libs/i18n   /app/client/app/libs/i18n
 COPY --from=webpack /app/public/webpack         /app/public/webpack
 COPY --from=assets  /app/public/assets          /app/public/assets
+COPY --from=assets /app/tmp/cache/bootsnap-compile-cache \
+    /app/tmp/cache/bootsnap-compile-cache
+COPY --from=assets /app/tmp/cache/bootsnap-load-path-cache \
+    /app/tmp/cache/bootsnap-load-path-cache
 
 RUN ln -fs /app/config/nginx.production.conf /etc/nginx/sites-enabled/rails-app
 

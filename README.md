@@ -13,6 +13,8 @@ that Rails assets and the webpack build are cached independently.
 * If there are any changes to assets, re-uses the assets cache from the previous build.
 * Only includes necessary files in the final image.
   * A production Rails app doesn't use any files in `app/assets`, `node_modules`, or front-end source code. A lot of gems also have some junk files that are removed (e.g. `spec/`, `test/`, `README.md`)
+* Include [bootsnap](https://github.com/Shopify/bootsnap) cache in the final image,
+  so that the server and rake tasks start a lot faster.
 * After building a new image, creates a small "diff layer" between the new image and the previous image. This layer only includes the changed files.
 * Creates a sequence of diff layers, and resets the base image if there are too many layers (> 30), or if the diff layers add up to more than 80% of the base layer's size.
 * Uses Nginx for better concurrency, and to serve static assets
