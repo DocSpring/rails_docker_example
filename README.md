@@ -81,40 +81,45 @@ Then run `./scripts/build_app`. You'll see that the `assets:precompile` task is 
 
 We're using a multi-stage build, and the assets and webpack stages both inherit from the `npm_rake` stage. This means that they can be cached independently and don't depend on each other.
 
+## Image Tags
 
-# Image Tags
+The `build_app` script uses the following tags to implement caching and diff layers:
 
-The build script uses the following tags to implement caching and diff layers:
-
-###  `demoapp/ruby-node:latest`
+#####  `demoapp/ruby-node:latest`
 
 Contains specific versions of Ruby, Node.js, and Yarn.
-I started by using some `ruby-node` images from Docker Hub,
-but I've found that it's much better to have full control over these versions.
 
-### `demoapp/base:latest`
+(I started by using some [`ruby-node`](https://hub.docker.com/r/starefossen/ruby-node/)
+images from Docker Hub, but I prefer to have full control over the versions.)
 
-Based on `demoapp/ruby-node`. Contains Linux packages (e.g. `build-essential`, `postgresql-client`, `nginx`, `rsync`), and also sets up some directories and environment variables.
+##### `demoapp/base:latest`
 
-### `demoapp/app:base-build`
+Based on `demoapp/ruby-node`. Installs Linux packages, such as `build-essential`, `postgresql-client`, `nginx`, and `rsync`. It also sets up some directories and environment variables.
 
- The base image for the app build. The initial build uses `demoapp/base` as the base image, and then tags the resulting image with `demoapp/app:base-build`. All the subsequent builds use this initial build as the base image. We only set the `base-build` once, because if it keeps changing then Docker can't do any caching.
+##### `demoapp/app:base-webpack-build`
 
-### `demoapp/app:latest-build`
+The base image for the webpack build. The initial build uses `demoapp/base` as the base image, and then tags the resulting image with `demoapp/app:base-webpack-build`. All the subsequent builds use this first build as the base image. We only set the `base-webpack-build` once and don't update it very often, because if it keeps changing then Docker can't cache any layers.
 
- The most recent build. We copy in the assets and Sprockets cache from this build before running `rake assets:precompile`. This way, we can take advantage of Docker's layer caching while also using the latest assets cache.
+##### `demoapp/app:base-assets-build`
 
-### `demoapp/app:current-build`
+The base image for the assets build.
 
- The build that is currently in progress. We need this tag because we run `docker build` twice, targeting two different stages in `Dockerfile.app`. After compiling assets, we save the whole build image as the `latest-build` tag. This includes all of the cache files that we want to re-use in the next build, but we don't need any of these files in production. So the second build re-uses all of these layers, but then runs some commands to clean up the image and remove unnecessary files, then finally squashes everything into a single layer.
 
-### `demoapp/app:current`
+##### `demoapp/app:latest-assets-build`
 
-This the in-progress production build that contains the final squashed layer. We don't override the `demoapp/app:latest` tag immediately, because we want to produce a small diff layer between `demoapp/app:latest` and `demoapp/app:current`
+The most recent assets build. We copy in the assets and Sprockets cache from this build before running `rake assets:precompile`. This way, we can take advantage of Docker's layer caching while also using the latest assets cache.
 
-### `demoapp/app:latest`
+##### `demoapp/app:current-webpack-build`, `demoapp/app:current-assets-build`
 
-After running `./scripts/build_app`, this is the final production image.
+ The build that is currently in progress. We need this tag because we run `docker build` multiple times, targeting different stages in `Dockerfile.app`. After compiling webpack, we save everything as the `latest-webpack-build` tag. And after compiling assets, we save everything as the `latest-assets-build` tag. This includes all of the cached files that we want to re-use in the next build. However, we don't need any of these files in production, so the final build runs some commands to clean up the image and remove unnecessary files, then squashes everything into a single layer.
+
+##### `demoapp/app:current`
+
+The in-progress production build that contains the final squashed layer. We don't override the `demoapp/app:latest` tag immediately, because the last step is to produce a small diff layer between `demoapp/app:latest` and `demoapp/app:current`
+
+##### `demoapp/app:latest`
+
+This is the final production image after running `./scripts/build_app`.
 
 
 ## More info about the react-webpack-rails-tutorial app
