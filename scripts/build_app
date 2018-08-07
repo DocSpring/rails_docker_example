@@ -5,6 +5,10 @@ set -e
 APP_NAME="demoapp"
 DOCKERFILE="docker/Dockerfile.app"
 DOCKER_CONTEXT="react-webpack-rails-tutorial"
+RESET_BUILD="$1"
+
+# If you are working with a team, make sure you pull the latest image first:
+# docker pull demoapp/app:latest
 
 # Reset the base image after this many rsync diff layers
 MAX_DIFF_LAYERS_COUNT=30
@@ -20,12 +24,13 @@ if [ -z "$(docker images -q $APP_NAME/base 2> /dev/null)" ]; then
 fi
 
 LATEST_BUILD_ID="$(docker images -q $APP_NAME/app:latest 2> /dev/null)"
-BASE_BUILD_ID="$(docker images -q $APP_NAME/app:base-build 2> /dev/null)"
-if [ -z "$BASE_BUILD_ID" ] || [ -z "$LATEST_BUILD_ID" ]; then
+BASE_ASSETS_BUILD_ID="$(docker images -q $APP_NAME/app:base-assets-build 2> /dev/null)"
+if [ -z "$BASE_ASSETS_BUILD_ID" ] || [ -z "$LATEST_BUILD_ID" ]; then
     echo "No previous builds, starting from $APP_NAME/base..."
     # If there is no previous build, use the base image
-    docker tag "$APP_NAME/base" "$APP_NAME/app:base-build"
-    docker tag "$APP_NAME/base" "$APP_NAME/app:latest-build"
+    docker tag "$APP_NAME/base" "$APP_NAME/app:base-webpack-build"
+    docker tag "$APP_NAME/base" "$APP_NAME/app:base-assets-build"
+    docker tag "$APP_NAME/base" "$APP_NAME/app:latest-assets-build"
     INITIAL_BUILD=true
 fi
 
@@ -35,8 +40,15 @@ SECRET_KEY_BASE=231bf79489c63f8c8facd7bf27db1c25\
 db4073818dfab4a9916890d193d535a7be458dbef1609800
 
 docker build \
+    --target webpack \
+    -t "$APP_NAME/app:current-webpack-build" \
+    -f "$DOCKERFILE" \
+    --build-arg "SECRET_KEY_BASE=${SECRET_KEY_BASE}" \
+    "$DOCKER_CONTEXT"
+
+docker build \
     --target assets \
-    -t "$APP_NAME/app:current-build" \
+    -t "$APP_NAME/app:current-assets-build" \
     -f "$DOCKERFILE" \
     --build-arg "SECRET_KEY_BASE=${SECRET_KEY_BASE}" \
     "$DOCKER_CONTEXT"
@@ -51,9 +63,10 @@ docker build \
 
 # Copy assets + cache from this build during the next build
 # (Must tag after the squashed build, otherwise it invalidates the cache)
-docker tag "$APP_NAME/app:current-build" "$APP_NAME/app:latest-build"
+docker tag "$APP_NAME/app:current-webpack-build" "$APP_NAME/app:latest-webpack-build"
+docker tag "$APP_NAME/app:current-assets-build" "$APP_NAME/app:latest-assets-build"
 
-if [ -z "$INITIAL_BUILD" ]; then
+if [ -z "$INITIAL_BUILD" ] && [ -z "$RESET_BUILD" ]; then
     IMAGE_LAYERS="$(docker history --human=false $APP_NAME/app:latest \
         --format="{{.Size}} {{.CreatedBy}} {{.Comment}}" 2>/dev/null || true)"
 
@@ -77,16 +90,19 @@ if [ -z "$INITIAL_BUILD" ]; then
     echo "=> Diff layers / Base layer: $DIFF_PERCENTAGE%"
 fi
 
-if [ "$INITIAL_BUILD" ] ||
+if [ -n "$INITIAL_BUILD" ] || [ -n "$RESET_BUILD" ] ||
     [ "$DIFF_LAYERS_COUNT" -ge "$MAX_DIFF_LAYERS_COUNT" ] ||
     [ "$DIFF_PERCENTAGE" -gt "$MAX_DIFF_SIZE_PERCENTAGE" ]
 then
     if [ "$INITIAL_BUILD" ]; then
         echo "Tagging $APP_NAME/app:base-build as the base image for next builds..."
-        docker tag "$APP_NAME/app:current-build" "$APP_NAME/app:base-build"
+        docker tag "$APP_NAME/app:current-webpack-build" "$APP_NAME/app:base-webpack-build"
+        docker tag "$APP_NAME/app:current-assets-build" "$APP_NAME/app:base-assets-build"
     elif [ "$DIFF_LAYERS_COUNT" -ge "$MAX_DIFF_LAYERS_COUNT" ]; then
         echo "Reached the maximum number of rsync diff layers ($MAX_DIFF_LAYERS_COUNT)"
         echo "Resetting base image..."
+    elif [ -n "$RESET_BUILD" ]; then
+        echo "Clearing all diff layers, setting this build as the latest image..."
     else
         echo "Diff layers add up to more than $MAX_DIFF_SIZE_PERCENTAGE% of the base layer"
         echo "Resetting base image..."
