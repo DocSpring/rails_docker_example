@@ -45,7 +45,7 @@ Make a change in `react-webpack-rails-tutorial/app/views/layouts/application.htm
 echo "hello world" >> react-webpack-rails-tutorial/app/views/layouts/application.html.erb
 ```
 
-Now run `./scripts/build_app`.
+Now run `./scripts/build_app`
 
 When you run `docker history demoapp/app:latest`, you should see a small rsync layer at the top, which only includes the changed file:
 
@@ -68,7 +68,7 @@ bundle install
 cd ..
 ```
 
-Run `./scripts/build_app`.
+Run `./scripts/build_app`
 
 Notice that while the `bundle install` and `yarn install` are not fully cached, they are still using all of the gems and npm packages from the previous build.
 
@@ -78,7 +78,7 @@ Now change a Rails asset:
 echo "body { color: blue; }" >> react-webpack-rails-tutorial/app/assets/stylesheets/test-asset.css
 ```
 
-Run `./scripts/build_app`.
+Run `./scripts/build_app`
 
 You'll see that the webpack steps are fully cached, but the `assets:precompile` task is run.
 
@@ -88,7 +88,7 @@ Now change a webpack asset in `client`:
 echo "body { color: green; }" >> react-webpack-rails-tutorial/client/app/assets/styles/app-variables.scss
 ```
 
-Run `./scripts/build_app`.
+Run `./scripts/build_app`
 
 You'll see that the `assets:precompile` task is fully cached, but the webpack build is run.
 
