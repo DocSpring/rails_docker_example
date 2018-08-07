@@ -1,8 +1,11 @@
 #!/bin/bash
 set -e
 echo "Deleting all demoapp/app images..."
-docker image rmi demoapp/app:base-build || true
-docker image rmi demoapp/app:current-build || true
-docker image rmi demoapp/app:latest-build || true
+docker image rmi demoapp/app:base-assets-build || true
+docker image rmi demoapp/app:base-webpack-build || true
+docker image rmi demoapp/app:current-assets-build || true
+docker image rmi demoapp/app:current-webpack-build || true
+docker image rmi demoapp/app:latest-assets-build || true
+docker image rmi demoapp/app:latest-webpack-build || true
 docker image rmi demoapp/app:current || true
 docker image rmi demoapp/app:latest || true
