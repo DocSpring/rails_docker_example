@@ -37,10 +37,17 @@ Then visit [localhost:3000](http://localhost:3000).
 The app should be running and you should be able to add a comment. (If you open the app in
 two different tabs, the comments should update in real-time via websockets.)
 
-Make a change in `react-webpack-rails-tutorial/app/views/layouts/application.html.erb`, then
-run `./scripts/build_app`.
+### Walkthrough
 
-When you run `docker history demoapp/app:latest`, you should see a small rsync layer at the top:
+Make a change in `react-webpack-rails-tutorial/app/views/layouts/application.html.erb`:
+
+```bash
+echo "hello world" >> react-webpack-rails-tutorial/app/views/layouts/application.html.erb
+```
+
+Now run `./scripts/build_app`.
+
+When you run `docker history demoapp/app:latest`, you should see a small rsync layer at the top, which only includes the changed file:
 
 ```
 IMAGE               CREATED             CREATED BY                                      SIZE                COMMENT
@@ -49,6 +56,8 @@ e3cdd669d928        2 hours ago                                                 
 <missing>           2 hours ago         /bin/sh -c #(nop)  CMD ["foreman" "start"]      0B
 <missing>           2 hours ago         /bin/sh -c #(nop)  EXPOSE 80                    0B
 ```
+
+> Note: The second build uses an updated base image, so the Docker layers are not fully cached. `bundle install` and `yarn install` should still be very fast, since they don't have to download anything. All the builds after this one will use cached layers, so they'll be even faster (if you don't change any gems or npm packages.)
 
 Now remove the `awesome_print` gem from the `Gemfile` and update `Gemfile.lock`:
 
@@ -59,7 +68,7 @@ bundle install
 cd ..
 ```
 
-Then run `./scripts/build_app`.
+Run `./scripts/build_app`.
 
 Notice that while the `bundle install` and `yarn install` are not fully cached, they are still using all of the gems and npm packages from the previous build.
 
@@ -69,7 +78,9 @@ Now change a Rails asset:
 echo "body { color: blue; }" >> react-webpack-rails-tutorial/app/assets/stylesheets/test-asset.css
 ```
 
-Then run `./scripts/build_app`. You'll see that the webpack steps are fully cached, but the `assets:precompile` task is run.
+Run `./scripts/build_app`.
+
+You'll see that the webpack steps are fully cached, but the `assets:precompile` task is run.
 
 Now change a webpack asset in `client`:
 
@@ -77,7 +88,9 @@ Now change a webpack asset in `client`:
 echo "body { color: green; }" >> react-webpack-rails-tutorial/client/app/assets/styles/app-variables.scss
 ```
 
-Then run `./scripts/build_app`. You'll see that the `assets:precompile` task is fully cached, but the webpack build is run.
+Run `./scripts/build_app`.
+
+You'll see that the `assets:precompile` task is fully cached, but the webpack build is run.
 
 We're using a multi-stage build, and the assets and webpack stages both inherit from the `npm_rake` stage. This means that they can be cached independently and don't depend on each other.
 
