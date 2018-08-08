@@ -17,7 +17,7 @@ that Rails assets and the webpack build are cached independently.
   to speed up server boot and rake tasks.
 * After building a new image, create a small "diff layer" between the new image and the previous image. This layer only includes the changed files.
 * Create a nested sequence of diff layers, but reset the sequence if there are too many layers (> 30), or if the diff layers add up to more than 80% of the base layer's size.
-* Use Nginx for better concurrency, and to serve static assets
+* Use Nginx for better concurrency and to serve static assets
 
 ## Build Docker images and start the Rails app
 
@@ -131,6 +131,14 @@ The in-progress production build that contains the final squashed layer. We don'
 ##### `demoapp/app:latest`
 
 This is the final production image after running `./scripts/build_app`.
+
+## Notes About Webpack DLL Plugin
+
+I added webpack's `DllPlugin` and `DllReferencePlugin` as a proof-of-concept for vendored libraries. The main idea is that if you use a separate `package.json` and `webpack.config.js`, Docker will cache these layers when the files haven't changed, so you cache the vendored packages and libraries. You just have to remember to run `yarn add <package>` in `client/vendor`, instead of `client`. If you add a package to `client/package.json` instead of `client/vendor/package.json`, it will work fine, but the package won't be included in your vendored DLL.
+
+This works great as a demo, and the `DllPlugin` can definitely be used in production, but this implementation isn't very clean and there are a lot of things that can be improved.
+
+`react-webpack-rails-tutorial` was already using the `CommonsChunkPlugin` to create their own vendored libaries. This runs during the main webpack build, so it can't be cached independently.
 
 
 ## More info about the react-webpack-rails-tutorial app

@@ -1,36 +1,26 @@
 FROM demoapp/app:base-webpack-build as webpack
 
 # Install and compile vendored libraries
-ADD client/vendor /app/client/vendor
+ADD client/vendor/package.json \
+    client/vendor/yarn.lock \
+    /app/client/vendor/
 RUN cd client/vendor && yarn install
 ADD config/webpacker.yml                    /app/config/webpacker.yml
+ADD client/vendor/webpack.config.js         /app/client/vendor/webpack.config.js
 RUN cd client/vendor && yarn run build:production
 
-# Install other packages for main webpack build
+# Install other npm packages for main webpack build
 ADD client/package.json client/yarn.lock /app/client/
 RUN cd client && yarn install
 
-# This would be much easier if the react_on_rails:locale task
-# was done in JS instead of Ruby.
-# We use a minimal Gemfile just for this step, so that we
-# have completely independent caching for the webpack and assets stages
-ADD client/Gemfile client/Gemfile.lock /app/
-RUN bundle install
-ADD Rakefile /app/Rakefile
-ADD client/boot.rb /app/config/boot.rb
-ADD config/initializers/assets.rb \
-    config/initializers/react_on_rails.rb \
-    /app/config/initializers/
-ADD config/environments/production.rb /app/config/environments/
-ADD config/locales /app/config/locales
-ADD config/application.rb \
-    config/environment.rb \
-    config/secrets.yml \
-    config/webpacker.yml \
-    /app/config/
-ARG SECRET_KEY_BASE
-RUN mkdir -p /app/client/app/libs/i18n \
-    && rake react_on_rails:locale
+# The webpack build depends on `rake react_on_rails:locale`,
+# but we just run this locally in `build_app`, instead of
+# making the Dockerfile too complicated.
+# The webpack build shouldn't depend on any Ruby gems.
+ADD client/app/libs/i18n/translations.js \
+    client/app/libs/i18n/default.js \
+    /app/client/app/libs/i18n/
+ADD config/webpacker.yml /app/config/
 ADD client /app/client
 RUN cd client && yarn run build:production
 
@@ -91,7 +81,7 @@ ADD . /app
 RUN rm -rf app/assets client node_modules log tmp \
     && mkdir log tmp
 
-# This dir is required for React on Rails
+# React on Rails crashes without this directory (but is unused in production)
 RUN mkdir -p /app/client/app/libs/i18n
 COPY --from=webpack /app/public/webpack         /app/public/webpack
 COPY --from=assets  /app/public/assets          /app/public/assets
