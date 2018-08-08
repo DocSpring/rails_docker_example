@@ -15,6 +15,7 @@ MAX_DIFF_LAYERS_COUNT=30
 # Reset the base image when rsync diff layers are more than x% of the base layer
 MAX_DIFF_SIZE_PERCENTAGE=80
 
+echo "Fetching info about previous docker builds..."
 # Build base images first
 if [ -z "$(docker images -q $APP_NAME/ruby-node 2> /dev/null)" ]; then
     docker build -t "$APP_NAME/ruby-node" -f docker/Dockerfile.ruby-node .
@@ -97,21 +98,27 @@ if [ -z "$INITIAL_BUILD" ] && [ -z "$RESET_BUILD" ]; then
     echo "=> Diff layers size: $(echo "$DIFF_LAYERS_SIZE" | numfmt --to=iec)B"
     echo "=> Base layer size: $(echo "$BASE_LAYER_SIZE" | numfmt --to=iec)B"
     echo "=> Diff layers / Base layer: $DIFF_PERCENTAGE%"
+
+    if [ "$DIFF_LAYERS_COUNT" -ge "$MAX_DIFF_LAYERS_COUNT" ]; then
+        OVER_MAX_DIFF_LAYERS="true"
+    fi
+    if [ "$DIFF_PERCENTAGE" -gt "$MAX_DIFF_SIZE_PERCENTAGE" ]; then
+        OVER_MAX_PERCENTAGE="true"
+    fi
 fi
 
 if [ -n "$INITIAL_BUILD" ] || [ -n "$RESET_BUILD" ] ||
-    [ "$DIFF_LAYERS_COUNT" -ge "$MAX_DIFF_LAYERS_COUNT" ] ||
-    [ "$DIFF_PERCENTAGE" -gt "$MAX_DIFF_SIZE_PERCENTAGE" ]
+    [ "$OVER_MAX_DIFF_LAYERS" = "true" ] || [ "$OVER_MAX_PERCENTAGE" = "true" ]
 then
     if [ "$INITIAL_BUILD" ]; then
         echo "Tagging $APP_NAME/app:base-webpack-build and :base-assets-build..."
         docker tag "$APP_NAME/app:current-webpack-build" "$APP_NAME/app:base-webpack-build"
         docker tag "$APP_NAME/app:current-assets-build" "$APP_NAME/app:base-assets-build"
-    elif [ "$DIFF_LAYERS_COUNT" -ge "$MAX_DIFF_LAYERS_COUNT" ]; then
-        echo "Reached the maximum number of rsync diff layers ($MAX_DIFF_LAYERS_COUNT)"
-        echo "Resetting base image..."
     elif [ -n "$RESET_BUILD" ]; then
         echo "Clearing all diff layers, setting this build as the latest image..."
+    elif [ "$OVER_MAX_DIFF_LAYERS" = "true" ]; then
+        echo "Reached the maximum number of rsync diff layers ($MAX_DIFF_LAYERS_COUNT)"
+        echo "Resetting base image..."
     else
         echo "Diff layers add up to more than $MAX_DIFF_SIZE_PERCENTAGE% of the base layer"
         echo "Resetting base image..."
