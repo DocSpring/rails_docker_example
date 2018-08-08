@@ -7,12 +7,13 @@
 * Use Docker's cached layers for gems, npm packages, and assets, if the relevant files have not been modified (`Gemfile`, `Gemfile.lock`, `package.json`, etc.)
 * Use a [multi-stage build](https://docs.docker.com/develop/develop-images/multistage-build/) so
 that Rails assets and the webpack build are cached independently.
+  * e.g. Changing assets doesn't invalidate the webpack layers, and vice versa.
 * Use the webpack [DllPlugin](https://webpack.js.org/plugins/dll-plugin/) to split the main dependencies into a separate file. This means that we only need to compile the main libraries once (e.g. React, Redux)
   * I used a separate `package.json` to take advantage of Docker's caching.
 * If there are any changes to `Gemfile` or `package.json`, re-use the gems and packages from the first build. (Don't download everything from scratch.)
 * If there are any changes to assets, re-use the assets and cache from the previous build.
 * Only include necessary files in the final image.
-  * A production Rails app doesn't need any files in `app/assets`, `node_modules`, or front-end source code. A lot of gems also have some junk files that can be safely removed (e.g. `spec/`, `test/`, `README.md`)
+  * A production Rails app doesn't need any files in `app/assets`, `node_modules`, or front-end source code. A lot of gems also have some unnecessary files that can be safely removed (e.g. `spec/`, `test/`, `README.md`)
 * Include the [bootsnap](https://github.com/Shopify/bootsnap) cache in the final image,
   to speed up server boot and rake tasks.
 * After building a new image, create a small "diff layer" between the new image and the previous image. This layer only includes the changed files.
