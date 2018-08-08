@@ -51,13 +51,13 @@ db4073818dfab4a9916890d193d535a7be458dbef1609800
 
 docker build \
     --target webpack \
-    -t "$APP_NAME/app:current-webpack-build" \
+    -t "$APP_NAME/app:latest-webpack-build" \
     -f "$DOCKERFILE" \
     "$DOCKER_CONTEXT"
 
 docker build \
     --target assets \
-    -t "$APP_NAME/app:current-assets-build" \
+    -t "$APP_NAME/app:latest-assets-build" \
     -f "$DOCKERFILE" \
     --build-arg "SECRET_KEY_BASE=${SECRET_KEY_BASE}" \
     "$DOCKER_CONTEXT"
@@ -69,11 +69,6 @@ docker build \
     --build-arg "SECRET_KEY_BASE=${SECRET_KEY_BASE}" \
     --squash \
     "$DOCKER_CONTEXT"
-
-# Copy assets + cache from this build during the next build
-# (Must tag after the squashed build, otherwise it invalidates the cache)
-docker tag "$APP_NAME/app:current-webpack-build" "$APP_NAME/app:latest-webpack-build"
-docker tag "$APP_NAME/app:current-assets-build" "$APP_NAME/app:latest-assets-build"
 
 if [ -z "$INITIAL_BUILD" ] && [ -z "$RESET_BUILD" ]; then
     IMAGE_LAYERS="$(docker history --human=false $APP_NAME/app:latest \
@@ -111,8 +106,8 @@ if [ -n "$INITIAL_BUILD" ] || [ -n "$RESET_BUILD" ] ||
 then
     if [ "$INITIAL_BUILD" ]; then
         echo "Tagging $APP_NAME/app:base-webpack-build and :base-assets-build..."
-        docker tag "$APP_NAME/app:current-webpack-build" "$APP_NAME/app:base-webpack-build"
-        docker tag "$APP_NAME/app:current-assets-build" "$APP_NAME/app:base-assets-build"
+        docker tag "$APP_NAME/app:latest-webpack-build" "$APP_NAME/app:base-webpack-build"
+        docker tag "$APP_NAME/app:latest-assets-build" "$APP_NAME/app:base-assets-build"
     elif [ -n "$RESET_BUILD" ]; then
         echo "Clearing all diff layers, setting this build as the latest image..."
     elif [ "$OVER_MAX_DIFF_LAYERS" = "true" ]; then

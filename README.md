@@ -94,7 +94,7 @@ You'll see that the `assets:precompile` task is fully cached, but the webpack bu
 
 ## Image Tags
 
-The `build_app` script uses the following tags to implement caching and diff layers:
+The `build_app` script uses the following Docker tags:
 
 #####  `demoapp/ruby-node:latest`
 
@@ -115,14 +115,10 @@ The base image for the webpack build. The initial build uses `demoapp/base` as t
 
 The base image for the assets build. The first build will use `demoapp/base:latest` as the base image (a clean slate), and the following builds will use the first build as the base image.
 
-##### `demoapp/app:latest-assets-build`
+##### `demoapp/app:latest-webpack-build` and `:latest-assets-build`
 
-The most recent assets build. We copy in the assets and Sprockets cache from this build before running `rake assets:precompile`. This way, we can take advantage of Docker's layer caching while also using the latest assets cache.
-
-##### `demoapp/app:current-webpack-build` and `:current-assets-build`
-
- The build that is currently in progress. We run `docker build` multiple times, targeting different stages in `Dockerfile.app`. After compiling webpack, we save the build environment in the `latest-webpack-build` tag. And after compiling assets, we save it as the `latest-assets-build` tag.
- We don't need any of these files in production, so the final build runs some commands to clean up the image and remove unnecessary files, then squashes everything into a single layer.
+ The most recent builds. We run `docker build` multiple times, targeting different stages in `Dockerfile.app`. If you chang a lot of gems or npm packages, you can update the base images to point to these tags: `docker tag demoapp/app:latest-assets-build demoapp/app:base-assets-build`
+Next time you change the Gemfile, you won't have to install as many gems. But don't update this too often, because most of the time you'll be using Docker's cached layers.
 
 ##### `demoapp/app:current`
 
@@ -130,7 +126,8 @@ The in-progress production build that contains the final squashed layer. We don'
 
 ##### `demoapp/app:latest`
 
-This is the final production image after running `./scripts/build_app`.
+This is the final production image after running `./scripts/build_app`. It will contain a small diff layer between the current image and the most recent image.
+
 
 ## Notes About Webpack DLL Plugin
 
