@@ -66,10 +66,6 @@ ADD app/assets                              /app/app/assets
 ADD lib/assets                              /app/lib/assets
 ADD vendor/assets                           /app/vendor/assets
 
-# Copy assets and cache from the latest build
-COPY --from=demoapp/app:latest-assets-build /app/tmp/cache/assets /app/tmp/cache/assets
-COPY --from=demoapp/app:latest-assets-build /app/public/assets /app/public/assets
-
 RUN rake DATABASE_URL=postgresql:does_not_exist assets:precompile
 
 # Reset image to the gems layer, copy everything and remove unneeded files

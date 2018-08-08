@@ -105,7 +105,7 @@ images from Docker Hub, but I prefer to have full control over the versions.)
 
 ##### `demoapp/base:latest`
 
-Based on `demoapp/ruby-node`. Installs Linux packages, such as `build-essential`, `postgresql-client`,and `rsync`. It also sets up some directories and environment variables.
+Based on `demoapp/ruby-node`. Installs Linux packages, such as `build-essential`, `postgresql-client`, and `rsync`. It also sets up some directories and environment variables.
 
 ##### `demoapp/app:base-webpack-build`
 
@@ -113,16 +113,16 @@ The base image for the webpack build. The initial build uses `demoapp/base` as t
 
 ##### `demoapp/app:base-assets-build`
 
-The base image for the assets build.
-
+The base image for the assets build. The first build will use `demoapp/base:latest` as the base image (a clean slate), and the following builds will use the first build as the base image.
 
 ##### `demoapp/app:latest-assets-build`
 
 The most recent assets build. We copy in the assets and Sprockets cache from this build before running `rake assets:precompile`. This way, we can take advantage of Docker's layer caching while also using the latest assets cache.
 
-##### `demoapp/app:current-webpack-build`, `demoapp/app:current-assets-build`
+##### `demoapp/app:current-webpack-build` and `:current-assets-build`
 
- The build that is currently in progress. We need this tag because we run `docker build` multiple times, targeting different stages in `Dockerfile.app`. After compiling webpack, we save everything as the `latest-webpack-build` tag. And after compiling assets, we save everything as the `latest-assets-build` tag. This includes all of the cached files that we want to re-use in the next build. However, we don't need any of these files in production, so the final build runs some commands to clean up the image and remove unnecessary files, then squashes everything into a single layer.
+ The build that is currently in progress. We run `docker build` multiple times, targeting different stages in `Dockerfile.app`. After compiling webpack, we save the build environment in the `latest-webpack-build` tag. And after compiling assets, we save it as the `latest-assets-build` tag.
+ We don't need any of these files in production, so the final build runs some commands to clean up the image and remove unnecessary files, then squashes everything into a single layer.
 
 ##### `demoapp/app:current`
 
