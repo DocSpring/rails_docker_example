@@ -117,7 +117,7 @@ The base image for the assets build. The first build will use `demoapp/base:late
 
 ##### `demoapp/app:latest-webpack-build` and `:latest-assets-build`
 
- The most recent builds. We run `docker build` multiple times, targeting different stages in `Dockerfile.app`. If you chang a lot of gems or npm packages, you can update the base images to point to these tags: `docker tag demoapp/app:latest-assets-build demoapp/app:base-assets-build`
+ The most recent build environments. We run `docker build` multiple times, targeting different stages in `Dockerfile.app`. If you change a lot of gems or npm packages, you can update the base images to point to these tags: `docker tag demoapp/app:latest-assets-build demoapp/app:base-assets-build`
 Next time you change the Gemfile, you won't have to install as many gems. But don't update this too often, because most of the time you'll be using Docker's cached layers.
 
 ##### `demoapp/app:current`
