@@ -70,7 +70,7 @@ cd ..
 
 Run `./scripts/build_app`
 
-Notice that while the `bundle install` and `yarn install` are not fully cached, they are still using all of the gems and npm packages from the previous build.
+Notice that while the `bundle install` is not fully cached, it is still using all of the gems from the previous build.
 
 Now change a Rails asset:
 
@@ -91,8 +91,6 @@ echo "body { color: green; }" >> react-webpack-rails-tutorial/client/app/assets/
 Run `./scripts/build_app`
 
 You'll see that the `assets:precompile` task is fully cached, but the webpack build is run.
-
-We're using a multi-stage build, and the assets and webpack stages both inherit from the `npm_rake` stage. This means that they can be cached independently and don't depend on each other.
 
 ## Image Tags
 

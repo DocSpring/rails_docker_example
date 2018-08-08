@@ -91,7 +91,8 @@ ADD . /app
 RUN rm -rf app/assets client node_modules log tmp \
     && mkdir log tmp
 
-COPY --from=webpack /app/client/app/libs/i18n   /app/client/app/libs/i18n
+# This dir is required for React on Rails
+RUN mkdir -p /app/client/app/libs/i18n
 COPY --from=webpack /app/public/webpack         /app/public/webpack
 COPY --from=assets  /app/public/assets          /app/public/assets
 COPY --from=assets /app/tmp/cache/bootsnap-compile-cache \
