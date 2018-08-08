@@ -43,7 +43,6 @@ ADD . /app
 RUN rm -rf app/assets log tmp && mkdir log tmp
 
 COPY --from=assets /app/public/assets /app/public/assets
-RUN ln -fs /app/config/nginx.production.conf /etc/nginx/sites-enabled/rails-app
 
 EXPOSE 80
 CMD ["foreman", "start"]

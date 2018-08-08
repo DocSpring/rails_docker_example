@@ -90,7 +90,5 @@ COPY --from=assets /app/tmp/cache/bootsnap-compile-cache \
 COPY --from=assets /app/tmp/cache/bootsnap-load-path-cache \
     /app/tmp/cache/bootsnap-load-path-cache
 
-RUN ln -fs /app/config/nginx.production.conf /etc/nginx/sites-enabled/rails-app
-
 EXPOSE 80
 CMD ["foreman", "start"]

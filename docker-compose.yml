@@ -12,7 +12,7 @@ services:
       - SECRET_KEY_BASE=231bf79489c63f8c8facd7bf27db1c2582a42a7f4302fccdb74ef35bc5dc91fb4e19dbf167f3003bdb4073818dfab4a9916890d193d535a7be458dbef1609800
     command: ["foreman", "start"]
     ports:
-      - 3000:80
+      - 3000:3000
     links:
       - postgres
       - redis

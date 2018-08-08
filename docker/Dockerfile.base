@@ -12,11 +12,8 @@ RUN apt-get update \
         build-essential git curl wget \
         rsync \
         postgresql-client libpq-dev \
-        nginx \
         --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
-RUN update-rc.d -f nginx disable \
-    && rm -f /etc/nginx/sites-enabled/default /etc/nginx/sites-available/default
 
 WORKDIR /app
 
@@ -35,4 +32,4 @@ ENV RAILS_SERVE_STATIC_FILES true
 ENV RAILS_LOG_TO_STDOUT true
 ENV RAILS_ENV production
 ENV NODE_ENV production
-ENV PORT 4001
+ENV PORT 3000

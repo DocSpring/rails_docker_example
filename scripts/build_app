@@ -39,11 +39,14 @@ SECRET_KEY_BASE=231bf79489c63f8c8facd7bf27db1c25\
 82a42a7f4302fccdb74ef35bc5dc91fb4e19dbf167f3003b\
 db4073818dfab4a9916890d193d535a7be458dbef1609800
 
-# Build i18n for React app. We could do this in the Docker image
-# but it just makes everything more complicated.
-# Better caching when the webpack build doesn't depend on bundle install.
-echo "Running rake react_on_rails:locale locally to prepare i18n for webpack..."
-(cd "$DOCKER_CONTEXT" && rake react_on_rails:locale)
+# Build i18n for React app. This could be done in the Docker image
+# but it just makes everything more complicated. We get much better
+# caching when the webpack build doesn't depend on bundle install.
+# ----------------------------------------------------------------------------------------
+# NOTE: For demo purposes, I've commented out this step and committed the generated files.
+# ----------------------------------------------------------------------------------------
+# echo "Running rake react_on_rails:locale locally to prepare i18n for webpack..."
+# (cd "$DOCKER_CONTEXT" && rake react_on_rails:locale)
 
 docker build \
     --target webpack \

@@ -17,7 +17,6 @@ that Rails assets and the webpack build are cached independently.
   to speed up server boot and rake tasks.
 * After building a new image, create a small "diff layer" between the new image and the previous image. This layer only includes the changed files.
 * Create a nested sequence of diff layers, but reset the sequence if there are too many layers (> 30), or if the diff layers add up to more than 80% of the base layer's size.
-* Use Nginx for better concurrency and to serve static assets
 
 ## Build Docker images and start the Rails app
 
@@ -105,7 +104,7 @@ images from Docker Hub, but I prefer to have full control over the versions.)
 
 ##### `demoapp/base:latest`
 
-Based on `demoapp/ruby-node`. Installs Linux packages, such as `build-essential`, `postgresql-client`, `nginx`, and `rsync`. It also sets up some directories and environment variables.
+Based on `demoapp/ruby-node`. Installs Linux packages, such as `build-essential`, `postgresql-client`,and `rsync`. It also sets up some directories and environment variables.
 
 ##### `demoapp/app:base-webpack-build`
 
