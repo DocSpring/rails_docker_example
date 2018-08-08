@@ -95,7 +95,7 @@ if [ -n "$INITIAL_BUILD" ] || [ -n "$RESET_BUILD" ] ||
     [ "$DIFF_PERCENTAGE" -gt "$MAX_DIFF_SIZE_PERCENTAGE" ]
 then
     if [ "$INITIAL_BUILD" ]; then
-        echo "Tagging $APP_NAME/app:base-build as the base image for next builds..."
+        echo "Tagging $APP_NAME/app:base-webpack-build and :base-assets-build..."
         docker tag "$APP_NAME/app:current-webpack-build" "$APP_NAME/app:base-webpack-build"
         docker tag "$APP_NAME/app:current-assets-build" "$APP_NAME/app:base-assets-build"
     elif [ "$DIFF_LAYERS_COUNT" -ge "$MAX_DIFF_LAYERS_COUNT" ]; then

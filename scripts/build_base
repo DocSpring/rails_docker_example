@@ -4,4 +4,5 @@ mkdir -p /tmp/docker-context
 docker build -t "demoapp/base" -f docker/Dockerfile.base .
 
 # Make the next app build use this base image
-docker image rm demoapp/app:base-build 2> /dev/null
+docker image rm demoapp/app:base-webpack-build 2> /dev/null
+docker image rm demoapp/app:base-assets-build 2> /dev/null
